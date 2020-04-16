@@ -62,12 +62,11 @@ namespace Messenger
 
         static async Task Main(string[] args)
         {
-            // if a user doesn't enter any arguments
             if (args.Length < 2)
             {
+                // if there is one argument and it reads -h or help
                 if (args.Length == 1)
                 {
-                    // if there is one argument and it reads -h or help
                     switch (args[0])
                     {
                         case "-h":
@@ -77,7 +76,7 @@ namespace Messenger
                     }
                 }
 
-                // otherwise write error message along with help message
+                // if a user doesn't enter proper amount of arguments
                 Console.Error.WriteLine($"ERROR: Too few arguments!");
                 Help();
             }
