@@ -107,6 +107,8 @@ namespace Messenger
                 outputFile.WriteLine(private_key_base64);
                 outputFile.WriteLine(json);
             }
+            
+            Console.WriteLine("Public and Private keys generated.");
         }
 
         /// <summary>

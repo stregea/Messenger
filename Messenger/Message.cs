@@ -7,6 +7,7 @@ using System.Numerics;
 using System.Text;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace Messenger
 {
@@ -23,14 +24,10 @@ namespace Messenger
         /// <param name="publicKeyFromSender">The senders public key used to decode their message</param>
         /// <param name="encodedMessage">The message to decode</param>
         /// <returns>The decoded message</returns>
-        string DecodeMessage(string publicKeyFromSender, string encodedMessage)
+        string DecodeMessage(string publicKeyFromSender, string privateKey, string encodedMessage)
         {
             var byteString = Convert.FromBase64String(publicKeyFromSender);
-            
-            // obtain the private key information
-            var privateKeyFilepath = $"{Environment.CurrentDirectory}/private.key";
-            var privateKey = System.IO.File.ReadAllLines(privateKeyFilepath);
-            var privateByteString = Convert.FromBase64String(privateKey[0]);
+            var privateByteString = Convert.FromBase64String(privateKey);
             
             BigInteger E;
             BigInteger D;
@@ -186,44 +183,79 @@ namespace Messenger
         /// <returns></returns>
         public async Task sendMessage(string email, string message)
         {
-            var encodedMessage = EncodeMessage(message);
+
+            var file_to_check = $"{email}.key";
             
-            // serialize the newly created json to be sent to the server
-            var serverInfo = new Dictionary<string, object>
+            // check if email's public key exists in the directory
+
+            if (File.Exists(file_to_check))
             {
-                {"email", email},
-                {"content", encodedMessage},
-            };
+                var encodedMessage = EncodeMessage(message);
+            
+                // serialize the newly created json to be sent to the server
+                var serverInfo = new Dictionary<string, object>
+                {
+                    {"email", email},
+                    {"content", encodedMessage},
+                };
 
-            var serverJSON = JsonConvert.SerializeObject(serverInfo);
+                var serverJSON = JsonConvert.SerializeObject(serverInfo);
 
-            var request = new StringContent(serverJSON, Encoding.UTF8, "application/json");
+                var request = new StringContent(serverJSON, Encoding.UTF8, "application/json");
 
-            try
-            {
-                HttpResponseMessage response = await client.PutAsync($"http://kayrun.cs.rit.edu:5000/Message/{email}", request);
-                response.EnsureSuccessStatusCode();
-                string responseBody = await response.Content.ReadAsStringAsync();
-                Console.WriteLine("Message written");
+                try
+                {
+                    HttpResponseMessage response = await client.PutAsync($"http://kayrun.cs.rit.edu:5000/Message/{email}", request);
+                    Console.WriteLine("Message written");
+                }
+                catch (HttpRequestException e)
+                {
+                    Console.WriteLine("\nException Caught!");
+                    Console.WriteLine("Message :{0} ", e.Message);
+                }
             }
-            catch (HttpRequestException e)
+            else
             {
-                Console.WriteLine("\nException Caught!");
-                Console.WriteLine("Message :{0} ", e.Message);
+                Console.WriteLine($"Key does not exist for {email}");
             }
+
         }
+
         /// <summary>
-        /// Retrieve a public key from the server
+        /// Function used to check to see if an email exists within the local private key.
+        /// </summary>
+        /// <param name="emailToCheck">The email to determine if it exists within the private key</param>
+        /// <param name="jsonEmail">the "email" key in the json from the private key</param>
+        /// <returns>true if an email exists, false otherwise</returns>
+        bool emailInKey(string emailToCheck, JArray jsonEmail)
+        {
+            var ret = false;
+
+            foreach (var email in jsonEmail)
+            {
+                if (email.ToString() == emailToCheck)
+                {
+                    ret = true;
+                }
+            }
+            return ret;
+        }
+        
+        /// <summary>
+        /// Retrieve a message from the server
         /// http://kayrun.cs.rit.edu:5000/Key/email
         /// </summary>
-        /// <param name="email">The email to retrieve the key from</param>
+        /// <param name="email">The email to retrieve the message from</param>
         /// <returns></returns>
         public async Task getMessage(string email)
         {
             var responseBody = "";
 
+            // obtain the private key information
+            var privateKeyFilepath = $"{Environment.CurrentDirectory}/private.key";
+            var privateKey = System.IO.File.ReadAllLines(privateKeyFilepath);
+            
             // first check if email is in private key
-            // Submit it a GET Request
             try
             {
                 HttpResponseMessage response = await client.GetAsync($"http://kayrun.cs.rit.edu:5000/Message/{email}");
@@ -236,22 +268,28 @@ namespace Messenger
                 Console.WriteLine("Message :{0} ", e.Message);
             }
             
-            // // try-catch to see if the response was null
+            // try-catch to see if the response was null
             try
             {
                 var json = JsonConvert.DeserializeObject<Dictionary<string, object>>(responseBody);
+                var privateKeyInformation = JsonConvert.DeserializeObject<Dictionary<string, object>>(privateKey[1]);
                 var messageEmail = json["email"];
                 var messageContent = json["content"];
+
+                JArray listOfEmails = (JArray) privateKeyInformation["email"];
                 
-                var publicKeyFilepath = $"{Environment.CurrentDirectory}/{email}.key";
-
-                var publicKey = System.IO.File.ReadAllLines(publicKeyFilepath);
-
-                Console.WriteLine("Message Received"); // delete later
-                // need to check if public key is in private key
-                var decodedMessage = DecodeMessage(publicKey[0], (string)messageContent);
-                Console.WriteLine(decodedMessage);
-
+                // check to see if public key of sender is in private key
+                if (emailInKey(email, listOfEmails))
+                {
+                    var publicKeyFilepath = $"{Environment.CurrentDirectory}/{email}.key";
+                    var publicKey = System.IO.File.ReadAllLines(publicKeyFilepath);
+                    var decodedMessage = DecodeMessage(publicKey[0], privateKey[0], (string)messageContent);
+                    Console.WriteLine(decodedMessage);
+                }
+                else
+                {
+                    Console.WriteLine("Message cannot be decoded");
+                }
             }
             catch (NullReferenceException)
             {
