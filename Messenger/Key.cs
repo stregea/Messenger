@@ -1,3 +1,11 @@
+/// Name: Samuel Tregea
+/// Professor: Jeremy Brown
+/// Project3: Messenger
+/// File: Key.cs
+/// Desctiption:
+///             This class aids in generating public and private RSA keys along with
+///             sending and receiving public keys from the server http://kayrun.cs.rit.edu:5000/Key/email
+///             where the email has been specified in the main Program.cs class
 using System;
 using System.Collections.Generic;
 using System.IO;
@@ -44,7 +52,7 @@ namespace Messenger
         /// Generate a Public and Private Key
         /// </summary>
         /// <param name="keysize"></param>
-        public void keyGen(int keysize)
+        public void KeyGen(int keysize)
         {
             var p = new PrimeNumberGenerator().GeneratePrimeNumber(keysize / 2);
             var q = new PrimeNumberGenerator().GeneratePrimeNumber(keysize / 2);
@@ -116,7 +124,7 @@ namespace Messenger
         /// </summary>
         /// <param name="email"></param>
         /// <returns></returns>
-        public async Task sendKey(string email)
+        public async Task SendKey(string email)
         {
             // read key from disk
             var private_key_path = $"{Environment.CurrentDirectory}/private.key";
@@ -202,7 +210,7 @@ namespace Messenger
         /// </summary>
         /// <param name="email">The email to retrieve the key from</param>
         /// <returns></returns>
-        public async Task getKey(string email)
+        public async Task GetKey(string email)
         {
             var responseBody = "";
 

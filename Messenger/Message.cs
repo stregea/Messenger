@@ -1,7 +1,14 @@
+/// Name: Samuel Tregea
+/// Professor: Jeremy Brown
+/// Project3: Messenger
+/// File: Message.cs
+/// Desctiption:
+///             This class aids in decoding and encoding messages along with
+///             sending and receiving messages from the server http://kayrun.cs.rit.edu:5000/Message/email
+///             where the email has been specified in the main Program.cs class
 using System;
 using System.Collections.Generic;
 using System.IO;
-using System.Linq;
 using System.Net.Http;
 using System.Numerics;
 using System.Text;
@@ -92,9 +99,7 @@ namespace Messenger
                 privateByteStringIndex++;
             }
             D = new BigInteger(dConverter);
-
-            // Console.WriteLine($"e: {e}\nE: {E}\nn: {n}\nN: {N}\nd: {d}\nD: {D}");
-           
+            
             // generate the ciphertext
             C = new BigInteger(Convert.FromBase64String(encodedMessage));
             
@@ -108,19 +113,19 @@ namespace Messenger
         }
         
         /// <summary>
-        /// Encrypt a message by decoding the public key and then ecrypt the message using
+        /// Encrypt a message by decoding the public key and then encode the message using
         /// the formula C = P^E % N.
         /// </summary>
+        /// <param name="email">The email associated to the public key</param>
         /// <param name="message">The message to encrypt</param>
         /// <returns>The ecrypted message</returns>
-        string EncodeMessage(string message)
+        string EncodeMessage(string email, string message)
         {
-            var publicKeyFilepath = $"{Environment.CurrentDirectory}/public.key";
+            var publicKeyFilepath = $"{Environment.CurrentDirectory}/{email}.key";
 
             var publicKey = Convert.FromBase64String(System.IO.File.ReadAllLines(publicKeyFilepath)[0]);
             
             BigInteger E;
-            // BigInteger D;
             BigInteger N;
             BigInteger C;
             BigInteger P;
@@ -179,9 +184,9 @@ namespace Messenger
         /// Encrypt and send a message to a user specified by their email.
         /// </summary>
         /// <param name="email">The email to send the message to</param>
-        /// <param name="message"></param>
+        /// <param name="message">The message to be encoded and send</param>
         /// <returns></returns>
-        public async Task sendMessage(string email, string message)
+        public async Task SendMessage(string email, string message)
         {
 
             var file_to_check = $"{email}.key";
@@ -190,7 +195,7 @@ namespace Messenger
 
             if (File.Exists(file_to_check))
             {
-                var encodedMessage = EncodeMessage(message);
+                var encodedMessage = EncodeMessage(email, message);
             
                 // serialize the newly created json to be sent to the server
                 var serverInfo = new Dictionary<string, object>
@@ -227,7 +232,7 @@ namespace Messenger
         /// <param name="emailToCheck">The email to determine if it exists within the private key</param>
         /// <param name="jsonEmail">the "email" key in the json from the private key</param>
         /// <returns>true if an email exists, false otherwise</returns>
-        bool emailInKey(string emailToCheck, JArray jsonEmail)
+        bool EmailInKey(string emailToCheck, JArray jsonEmail)
         {
             var ret = false;
 
@@ -247,7 +252,7 @@ namespace Messenger
         /// </summary>
         /// <param name="email">The email to retrieve the message from</param>
         /// <returns></returns>
-        public async Task getMessage(string email)
+        public async Task GetMessage(string email)
         {
             var responseBody = "";
 
@@ -255,7 +260,6 @@ namespace Messenger
             var privateKeyFilepath = $"{Environment.CurrentDirectory}/private.key";
             var privateKey = System.IO.File.ReadAllLines(privateKeyFilepath);
             
-            // first check if email is in private key
             try
             {
                 HttpResponseMessage response = await client.GetAsync($"http://kayrun.cs.rit.edu:5000/Message/{email}");
@@ -279,7 +283,7 @@ namespace Messenger
                 JArray listOfEmails = (JArray) privateKeyInformation["email"];
                 
                 // check to see if public key of sender is in private key
-                if (emailInKey(email, listOfEmails))
+                if (EmailInKey(email, listOfEmails))
                 {
                     var publicKeyFilepath = $"{Environment.CurrentDirectory}/{email}.key";
                     var publicKey = System.IO.File.ReadAllLines(publicKeyFilepath);

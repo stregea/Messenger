@@ -1,3 +1,10 @@
+/// Name: Samuel Tregea
+/// Professor: Jeremy Brown
+/// Project3: Messenger
+/// File: PrimeNumberGenerator.cs
+/// Desctiption:
+///             This class aids in generating large random prime numbers via parallel computing.
+
 using System;
 using System.Diagnostics;
 using System.Numerics;
@@ -6,7 +13,7 @@ using System.Threading.Tasks;
 
 namespace Messenger
 {
-        /// <summary>
+    /// <summary>
     /// Static class that is used for an BigInteger object to call to determine if it's a prime number
     /// </summary>
     static class Prime
@@ -96,23 +103,6 @@ namespace Messenger
                 }
             });
             return ret;
-        }
-
-
-        public BigInteger GenerateE(int bits, BigInteger upper)
-        {
-            var ret = (BigInteger) 65537;
-
-            var tmp = GeneratePrimeNumber(bits);
-
-
-            if (tmp >= 3 && tmp <= upper)
-            {
-                return tmp;
-            }
-
-            return ret;
-
         }
     }
 }
