@@ -101,7 +101,7 @@ namespace Messenger
 
         public BigInteger GenerateE(int bits, BigInteger upper)
         {
-            var ret = (BigInteger) 65536;
+            var ret = (BigInteger) 65537;
 
             var tmp = GeneratePrimeNumber(bits);
 

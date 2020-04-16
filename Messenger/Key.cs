@@ -22,7 +22,7 @@ namespace Messenger
         /// <param name="a"></param>
         /// <param name="n"></param>
         /// <returns></returns>
-        static BigInteger modInverse(BigInteger a, BigInteger n)
+        public static BigInteger modInverse(BigInteger a, BigInteger n)
         {
             BigInteger i = n, v = 0, d = 1;
             while (a > 0)
@@ -48,10 +48,12 @@ namespace Messenger
         {
             var p = new PrimeNumberGenerator().GeneratePrimeNumber(keysize / 2);
             var q = new PrimeNumberGenerator().GeneratePrimeNumber(keysize / 2);
+            
             var r = (p - 1) * (q - 1);
             var N = p * q;
-            var E = new PrimeNumberGenerator().GenerateE(keysize, r);
+            BigInteger E = new BigInteger(65537);
             var D = modInverse(E, r);
+            
             var E_Array = E.ToByteArray();
             var D_Array = D.ToByteArray();
             var N_Array = N.ToByteArray();
@@ -59,7 +61,7 @@ namespace Messenger
             var e = BitConverter.GetBytes(E_Array.Length);
             var d = BitConverter.GetBytes(D_Array.Length);
             var n = BitConverter.GetBytes(N_Array.Length);
-
+     
             // check little endian
             if (BitConverter.IsLittleEndian)
             {
@@ -70,13 +72,13 @@ namespace Messenger
 
             // eeeeEEE...EEEnnnnNNN..NNN
             var public_key = e.Concat(E_Array).Concat(n).Concat(N_Array).ToArray();
-
+            
             // ddddDDD....DDnnnnNNN...NNNN
             var private_key = d.Concat(D_Array).Concat(n).Concat(N_Array).ToArray();
 
             // convert to base 64
-            var public_key_base64 = Convert.ToBase64String(public_key, 0, public_key.Length);
-            var private_key_base64 = Convert.ToBase64String(private_key, 0, public_key.Length);
+            var public_key_base64 = Convert.ToBase64String(public_key);
+            var private_key_base64 = Convert.ToBase64String(private_key);
 
             // filepath
             var public_filepath = $"{Environment.CurrentDirectory}/public.key";
@@ -86,12 +88,12 @@ namespace Messenger
             // write to the filepath for the public key
             using (StreamWriter outputFile = new StreamWriter(public_filepath))
             {
-                outputFile.WriteLine(public_key_base64);
+                outputFile.Write(public_key_base64);
             }
 
             var listOfEmails = new List<string>();
+            
             // build a json stub for the private key
-
             var info = new Dictionary<string, object>
             {
                 {"email", listOfEmails},
@@ -180,11 +182,10 @@ namespace Messenger
 
             try
             {
-                HttpResponseMessage response =
-                    await client.PutAsync($"http://kayrun.cs.rit.edu:5000/Key/{email}", request);
+                HttpResponseMessage response = await client.PutAsync($"http://kayrun.cs.rit.edu:5000/Key/{email}", request);
                 response.EnsureSuccessStatusCode();
                 string responseBody = await response.Content.ReadAsStringAsync();
-                Console.WriteLine(responseBody);
+                Console.WriteLine("Key Saved");
             }
             catch (HttpRequestException e)
             {
