@@ -28,60 +28,22 @@ namespace Messenger
         /// <summary>
         /// Decode a message sent from the server
         /// </summary>
-        /// <param name="publicKeyFromSender">The senders public key used to decode their message</param>
+        /// <param name="privateKey">The private key used to decode a message</param>
         /// <param name="encodedMessage">The message to decode</param>
         /// <returns>The decoded message</returns>
-        string DecodeMessage(string publicKeyFromSender, string privateKey, string encodedMessage)
+        string DecodeMessage(string privateKey, string encodedMessage)
         {
-            var byteString = Convert.FromBase64String(publicKeyFromSender);
             var privateByteString = Convert.FromBase64String(privateKey);
             
-            BigInteger E;
             BigInteger D;
             BigInteger N;
             BigInteger C;
             BigInteger P;
-            int e;
             int d;
             int n;
             var byteStringIndex = 4;
 
-            // read in the bytes for 'e'
-            var eBytes = new byte[] {byteString[0], byteString[1], byteString[2], byteString[3]};
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(eBytes);
-            }
-            e = (int) new BigInteger(eBytes);
 
-            // read in 'E'
-            var eConverter = new byte[e];
-            for (var i = 0; i < e; i++)
-            {
-                eConverter[i] = byteString[byteStringIndex];
-                byteStringIndex++;
-            }
-            E = new BigInteger(eConverter);
-
-            // read in the bytes for 'n'
-            var nBytes = new byte[] {byteString[byteStringIndex], byteString[byteStringIndex + 1], 
-                byteString[byteStringIndex + 2], byteString[byteStringIndex + 3]};
-            byteStringIndex += 4;
-            if (BitConverter.IsLittleEndian)
-            {
-                Array.Reverse(nBytes);
-            }
-            n = (int) new BigInteger(nBytes);
-            
-            // read in 'N'
-            var nConverter = new byte[n];
-            for (var i = 0; i < n; i++)
-            {
-                nConverter[i] = byteString[byteStringIndex];
-                byteStringIndex++;
-            }
-            N = new BigInteger(nConverter);
-            
             // get 'd' from the private key
             var dBytes = new byte[] {privateByteString[0], privateByteString[1], privateByteString[2], privateByteString[3]};
             if (BitConverter.IsLittleEndian)
@@ -99,7 +61,26 @@ namespace Messenger
                 privateByteStringIndex++;
             }
             D = new BigInteger(dConverter);
+
+            // read in the bytes for 'n'
+            var nBytes = new byte[] {privateByteString[privateByteStringIndex], privateByteString[privateByteStringIndex + 1], 
+                privateByteString[privateByteStringIndex + 2], privateByteString[privateByteStringIndex + 3]};
+            privateByteStringIndex += 4;
+            if (BitConverter.IsLittleEndian)
+            {
+                Array.Reverse(nBytes);
+            }
+            n = (int) new BigInteger(nBytes);
             
+            // read in 'N'
+            var nConverter = new byte[n];
+            for (var i = 0; i < n; i++)
+            {
+                nConverter[i] = privateByteString[privateByteStringIndex];
+                privateByteStringIndex++;
+            }
+            N = new BigInteger(nConverter);
+
             // generate the ciphertext
             C = new BigInteger(Convert.FromBase64String(encodedMessage));
             
@@ -285,9 +266,7 @@ namespace Messenger
                 // check to see if public key of sender is in private key
                 if (EmailInKey(email, listOfEmails))
                 {
-                    var publicKeyFilepath = $"{Environment.CurrentDirectory}/{email}.key";
-                    var publicKey = System.IO.File.ReadAllLines(publicKeyFilepath);
-                    var decodedMessage = DecodeMessage(publicKey[0], privateKey[0], (string)messageContent);
+                    var decodedMessage = DecodeMessage(privateKey[0], (string)messageContent);
                     Console.WriteLine(decodedMessage);
                 }
                 else
